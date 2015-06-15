@@ -382,6 +382,14 @@ _load_commands() {
   _debug printf "_load_commands(): entering...\n"
   _debug printf "_load_commands() declare -F:\n%s\n" "$(declare -F)"
 
+  if [[ -d "$HOME/.orphans" ]]
+  then
+    for _file in "$HOME/.orphans"/*
+    do
+      source "$_file"
+    done
+  fi
+
   # declare is a bash built-in shell function that, when called with the '-F'
   # option, displays all of the functions with the format
   # `declare -f function_name`. These are then assigned as elements in the
@@ -725,86 +733,6 @@ commands() {
 # }
 #
 ###############################################################################
-
-# Example Section #############################################################
-
-# --------------------------------------------------------------------- example
-
-desc "example" <<EOM
-Usage:
-  $_ME example [<name>] [--farewell]
-
-Options:
-  --farewell  Print "Goodbye, World!"
-
-Description:
-  Print "Hello, World!"
-EOM
-example() {
-  # These debug statements demonstrate the different behaviors of the
-  # positional parameters, the special variables, and the two generated
-  # command argument arrays.
-  #
-  # Note in particular that $@ and $* omit the script name like the
-  # $_COMMAND_PARAMETERS array does, whereas the positional parameter variables
-  # $0, $1, $2 do include it, like the $_COMMAND_ARGV array.
-  #
-  # Individual elements 0, 1, and 2 of each:
-  _debug printf "example() \$0: %s\n" "${0:-}"
-  _debug printf "example() \${_COMMAND_ARGV[0]:-}: %s\n" "${_COMMAND_ARGV[0]:-}"
-  _debug \
-    printf "example() \${_COMMAND_PARAMETERS[0]:-}: %s\n" \
-    "${_COMMAND_PARAMETERS[0]:-}"
-  _debug printf "example() \$1: %s\n" "${1:-}"
-  _debug printf "example() \${_COMMAND_ARGV[1]:-}: %s\n" "${_COMMAND_ARGV[1]:-}"
-  _debug \
-    printf "example() \${_COMMAND_PARAMETERS[1]:-}: %s\n" \
-    "${_COMMAND_PARAMETERS[1]:-}"
-  _debug printf "example() \$2: %s\n" "${2:-}"
-  _debug printf "example() \${_COMMAND_ARGV[2]:-}: %s\n" "${_COMMAND_ARGV[2]:-}"
-  _debug \
-    printf "example() \${_COMMAND_PARAMETERS[2]:-}: %s\n" \
-    "${_COMMAND_PARAMETERS[2]:-}"
-  # Each expanded to string:
-  _debug printf "example() \${*:-}: %s\n" "${*:-}"
-  _debug printf "example() \${_COMMAND_ARGV[*]:-}: %s\n" "${_COMMAND_ARGV[*]:-}"
-  _debug \
-    printf "example() \${_COMMAND_PARAMETERS[*]:-}: %s\n" \
-    "${_COMMAND_PARAMETERS[*]:-}"
-
-  # Set default greeting.
-  local greeting="Hello"
-  # Initialize arguments array.
-  local arguments=()
-
-  # Parse command arguments.
-  for arg in "${_COMMAND_ARGV[@]:-}"
-  do
-    case $arg in
-      --farewell) greeting="Goodbye";;
-      -*) _die printf "Unexpected option: %s\n" "$arg";;
-      *) arguments+=($arg);;
-    esac
-  done
-
-  _debug printf "example() \${arguments[0]:-}: %s\n" "${arguments[0]:-}"
-  _debug printf "example() \${arguments[1]:-}: %s\n" "${arguments[1]:-}"
-
-  local name=${arguments[1]:-}
-
-  _debug printf "example() \$greeting: %s\n" "$greeting"
-  _debug printf "example() \$name: %s\n" "$name"
-
-  if [[ "$name" == "Moon" ]]
-  then
-    printf "%s, Luna!\n" "$greeting"
-  elif [[ -n "$name" ]]
-  then
-    printf "%s, %s!\n" "$greeting" "$name"
-  else
-    printf "%s, World!\n" "$greeting"
-  fi
-}
 
 ###############################################################################
 # Run Program
