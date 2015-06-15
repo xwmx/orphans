@@ -561,6 +561,32 @@ _present() {
   [[ -n "${1:-}" ]]
 }
 
+# _is_installed_with_homebrew()
+#
+# Usage:
+#   _is_installed_with_homebrew "libgit2"
+#
+# Determine if a Homebrew formula is installed.
+_is_installed_with_homebrew() {
+  brew list -1 | grep -q "^${1}\$"
+}
+
+# _remove()
+#
+# Usage:
+#   _remove /path/to/a/file/or/directory/
+#
+# If a `trash` command is present in the environment, use that to remove the
+# provided path, otherwise, use rm -rf
+_remove() {
+  if [[ -f "$(which trash)" ]]
+  then
+    trash "$1"
+  else
+    rm -rf "$1"
+  fi
+}
+
 ###############################################################################
 # desc
 ###############################################################################
