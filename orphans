@@ -107,14 +107,21 @@ set -o pipefail
 # when expanding an array and you want to separate elements by spaces.
 # $SAFER_IFS contains the preferred settings for the program, and setting it
 # separately makes it easier to switch between the two if needed.
-DEFAULT_IFS="$IFS"
+#
+# Supress ShellCheck unused variable warning:
+# shellcheck disable=SC2034
+DEFAULT_IFS="${IFS}"
 SAFER_IFS=$'\n\t'
-IFS="$SAFER_IFS"
+IFS="${SAFER_IFS}"
 
 ###############################################################################
 # Globals
 ###############################################################################
 
+# $_VERSION
+#
+# Manually set this to to current version of the program. Adhere to the
+# semantic versioning specification: http://semver.org
 _VERSION="0.1.0-alpha"
 
 # $DEFAULT_COMMAND
@@ -135,12 +142,14 @@ DEFAULT_COMMAND="${DEFAULT_COMMAND:-help}"
 # A simple function for executing a specified command if the `$_USE_DEBUG`
 # variable has been set. The command is expected to print a message and
 # should typically be either `echo`, `printf`, or `cat`.
+__DEBUG_COUNTER=0
 _debug() {
   if [[ "${_USE_DEBUG:-"0"}" -eq 1 ]]
   then
+    __DEBUG_COUNTER=$((__DEBUG_COUNTER+1))
     # Prefix debug message with "bug (U+1F41B)"
-    printf "🐛  "
-    "$@"
+    printf "🐛  %s " "${__DEBUG_COUNTER}"
+    "${@}"
     printf "――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――\n"
   fi
 }
@@ -153,7 +162,7 @@ _debug() {
 #
 # This is a shortcut for the _debug() function that simply echos the message.
 debug() {
-  _debug echo "$@"
+  _debug echo "${@}"
 }
 
 ###############################################################################
@@ -171,7 +180,7 @@ debug() {
 _die() {
   # Prefix die message with "cross mark (U+274C)", often displayed as a red x.
   printf "❌  "
-  "$@" 1>&2
+  "${@}" 1>&2
   exit 1
 }
 # die()
@@ -183,7 +192,7 @@ _die() {
 #
 # This is a shortcut for the _die() function that simply echos the message.
 die() {
-  _die echo "$@"
+  _die echo "${@}"
 }
 
 ###############################################################################
@@ -191,7 +200,7 @@ die() {
 ###############################################################################
 
 # Get raw options for any commands that expect them.
-_RAW_OPTIONS="$*"
+_RAW_OPTIONS="${*:-}"
 
 # Steps:
 #
@@ -229,9 +238,9 @@ optstring=h
 # argument to the option, such as wget -qO-)
 unset options
 # while the number of arguments is greater than 0
-while (($#))
+while ((${#}))
 do
-  case $1 in
+  case ${1} in
     # if option is of type -ab
     -[!-]?*)
       # loop over each character starting with the second
@@ -240,11 +249,11 @@ do
         # extract 1 character from position 'i'
         c=${1:i:1}
         # add current char to options
-        options+=("-$c")
+        options+=("-${c}")
 
         # if option takes a required argument, and it's not the last char
         # make the rest of the string its argument
-        if [[ $optstring = *"$c:"* && ${1:i+1} ]]
+        if [[ ${optstring} = *"${c}:"* && ${1:i+1} ]]
         then
           options+=("${1:i+1}")
           break
@@ -259,12 +268,12 @@ do
     --)
       options+=(--endopts)
       shift
-      options+=("$@")
+      options+=("${@}")
       break
       ;;
     # otherwise, nothing special
     *)
-      options+=("$1")
+      options+=("${1}")
       ;;
   esac
 
@@ -282,17 +291,17 @@ unset options
 # command. This is essentially the same as the program arguments, minus those
 # that have been filtered out in the program option parsing loop. This array
 # is initialized with $0, which is the program's name.
-_COMMAND_ARGV=("$0")
+_COMMAND_ARGV=("${0}")
 # Initialize $_CMD and `$_USE_DEBUG`, which can continue to be blank depending
 # on what the program needs.
 _CMD=""
 _USE_DEBUG=0
 
-while [ $# -gt 0 ]
+while [[ ${#} -gt 0 ]]
 do
-  opt="$1"
+  __opt="${1}"
   shift
-  case "$opt" in
+  case "${__opt}" in
     -h|--help)
       _CMD="help"
       ;;
@@ -305,11 +314,11 @@ do
     *)
       # The first non-option argument is assumed to be the command name.
       # All subsequent arguments are added to $_COMMAND_ARGV.
-      if [[ -n $_CMD ]]
+      if [[ -n "${_CMD}" ]]
       then
-        _COMMAND_ARGV+=("$opt")
+        _COMMAND_ARGV+=("${__opt}")
       else
-        _CMD="$opt"
+        _CMD="${__opt}"
       fi
       ;;
   esac
@@ -329,7 +338,9 @@ unset _COMMAND_PARAMETERS[0]
 _debug printf "\${_CMD}: %s\n" "${_CMD}"
 _debug printf "\${_RAW_OPTIONS} (one per line):\n%s\n" "${_RAW_OPTIONS}"
 _debug printf "\${_COMMAND_ARGV[*]}: %s\n" "${_COMMAND_ARGV[*]}"
-_debug printf "\${_COMMAND_PARAMETERS[*]}: %s\n" "${_COMMAND_PARAMETERS[*]:-}"
+_debug printf \
+  "\${_COMMAND_PARAMETERS[*]:-}: %s\n" \
+  "${_COMMAND_PARAMETERS[*]:-}"
 
 ###############################################################################
 # Environment
@@ -340,7 +351,7 @@ _debug printf "\${_COMMAND_PARAMETERS[*]}: %s\n" "${_COMMAND_PARAMETERS[*]:-}"
 # Set to the program's basename.
 _ME=$(basename "${0}")
 
-_debug printf "\$_ME: %s\n" "${_ME}"
+_debug printf "\${_ME}: %s\n" "${_ME}"
 
 ###############################################################################
 # Load Commands
@@ -372,32 +383,34 @@ _load_commands() {
   # option, displays all of the functions with the format
   # `declare -f function_name`. These are then assigned as elements in the
   # $function_list array.
-  local function_list=($(declare -F))
+  local _function_list=($(declare -F))
 
-  for c in "${function_list[@]}"
+  for __name in "${_function_list[@]}"
   do
     # Each element has the format `declare -f function_name`, so set the name
     # to only the 'function_name' part of the string.
-    local function_name
-    function_name=$(printf "%s" "$c" | awk '{ print $3 }')
+    local _function_name
+    _function_name=$(printf "%s" "${__name}" | awk '{ print $3 }')
 
-    _debug printf "_load_commands() \$function_name: %s\n" "$function_name"
+    _debug printf \
+      "_load_commands() \${_function_name}: %s\n" \
+      "${_function_name}"
 
     # Add the function name to the $_DEFINED_COMMANDS array unless it starts
     # with an underscore or is one of the desc(), debug(), or die() functions,
     # since these are treated as having 'private' visibility.
-    if ! ( [[ "$function_name" =~ ^_(.*)  ]] || \
-           [[ "$function_name" == "desc"  ]] || \
-           [[ "$function_name" == "debug" ]] || \
-           [[ "$function_name" == "die"   ]]
+    if ! ( [[ "${_function_name}" =~ ^_(.*)  ]] || \
+           [[ "${_function_name}" == "desc"  ]] || \
+           [[ "${_function_name}" == "debug" ]] || \
+           [[ "${_function_name}" == "die"   ]]
     )
     then
-      _DEFINED_COMMANDS+=("$function_name")
+      _DEFINED_COMMANDS+=("${_function_name}")
     fi
   done
 
   _debug printf \
-    "commands() \$_DEFINED_COMMANDS:\n%s\n" \
+    "commands() \${_DEFINED_COMMANDS[*]:-}:\n%s\n" \
     "${_DEFINED_COMMANDS[*]:-}"
 }
 
@@ -415,24 +428,24 @@ _load_commands() {
 # NOTE: must be called at end of program after all commands have been defined.
 _main() {
   _debug printf "main(): entering...\n"
-  _debug printf "main() \$_CMD (upon entering): %s\n" "$_CMD"
+  _debug printf "main() \${_CMD} (upon entering): %s\n" "${_CMD}"
 
   # If $_CMD is blank, then set to `$DEFAULT_COMMAND`
-  if [[ -z $_CMD ]]
+  if [[ -z "${_CMD}" ]]
   then
-    _CMD="$DEFAULT_COMMAND"
+    _CMD="${DEFAULT_COMMAND}"
   fi
 
   # Load all of the commands.
   _load_commands
 
   # If the command is defined, run it, otherwise return an error.
-  if _contains "$_CMD" "${_DEFINED_COMMANDS[*]:-}"
+  if _contains "${_CMD}" "${_DEFINED_COMMANDS[*]:-}"
   then
     # Pass all comment arguments to the program except for the first ($0).
-    $_CMD "${_COMMAND_PARAMETERS[@]:-}"
+    ${_CMD} "${_COMMAND_PARAMETERS[@]:-}"
   else
-    _die printf "Unknown command: %s\n" "$_CMD"
+    _die printf "Unknown command: %s\n" "${_CMD}"
   fi
 }
 
@@ -445,10 +458,14 @@ _main() {
 # Usage:
 #   _function_exists "possible_function_name"
 #
-# Takes a potential function name as an argument and returns whether a function
-# exists with that name.
+# Returns:
+#   0  If a function with the given name is defined in the current environment.
+#   1  If not.
+#
+# Other implementations, some with better performance:
+# http://stackoverflow.com/q/85880
 _function_exists() {
-  [ "$(type -t "$1")" == 'function' ]
+  [ "$(type -t "${1}")" == 'function' ]
 }
 
 # _command_exists()
@@ -456,13 +473,14 @@ _function_exists() {
 # Usage:
 #   _command_exists "possible_command_name"
 #
-# Takes a potential command name as an argument and returns whether a command
-# exists with that name.
+# Returns:
+#   0  If a command with the given name is defined in the current environment.
+#   1  If not.
 #
-# For information on why `hash` is used here, see:
+# Information on why `hash` is used here:
 # http://stackoverflow.com/a/677212
 _command_exists() {
-  hash "$1" 2>/dev/null
+  hash "${1}" 2>/dev/null
 }
 
 # _contains()
@@ -470,15 +488,17 @@ _command_exists() {
 # Usage:
 #   _contains "$item" "${list[*]}"
 #
-# Takes an item and a list and determines whether the list contains the item.
+# Returns:
+#   0  If the item is included in the list.
+#   1  If not.
 _contains() {
-  local test_list=(${*:2})
-  for _test_element in "${test_list[@]:-}"
+  local _test_list=(${*:2})
+  for __test_element in "${_test_list[@]:-}"
   do
-    _debug printf "_contains() \$_test_element: %s\n" "$_test_element"
-    if [[ "$_test_element" == "$1" ]]
+    _debug printf "_contains() \${__test_element}: %s\n" "${__test_element}"
+    if [[ "${__test_element}" == "${1}" ]]
     then
-      _debug printf "_contains() match: %s\n" "$1"
+      _debug printf "_contains() match: %s\n" "${1}"
       return 0
     fi
   done
@@ -491,18 +511,19 @@ _contains() {
 #   _join "," a b c
 #   _join "${an_array[@]}"
 #
-# Takes a separator and a list of items, joining that list of items with the
-# separator.
+# Returns:
+#   The list or array of items joined into a string with elements divided by
+#   the optional separator if one is provided.
 _join() {
-  local separator
-  local target_array
-  local dirty
-  local clean
-  separator="$1"
-  target_array=(${@:2})
-  dirty="$(printf "${separator}%s"  "${target_array[@]}")"
-  clean="${dirty:${#separator}}"
-  printf "%s" "${clean}"
+  local _separator
+  local _target_array
+  local _dirty
+  local _clean
+  _separator="${1}"
+  _target_array=(${@:2})
+  _dirty="$(printf "${_separator}%s"  "${_target_array[@]}")"
+  _clean="${_dirty:${#_separator}}"
+  printf "%s" "${_clean}"
 }
 
 # _command_argv_includes()
@@ -510,13 +531,15 @@ _join() {
 # Usage:
 #   _command_argv_includes "an_argument"
 #
-# Takes a possible command argument and determines whether it is included in
-# the command argument list.
+# Returns:
+#   0  If the argument is included in `$_COMMAND_ARGV`, the program's command
+#      argument list.
+#   1  If not.
 #
 # This is a shortcut for simple cases where a command wants to check for the
 # presence of options quickly without parsing the options again.
 _command_argv_includes() {
-  _contains "$1" "${_COMMAND_ARGV[*]}"
+  _contains "${1}" "${_COMMAND_ARGV[*]}"
 }
 
 # _blank()
@@ -524,7 +547,9 @@ _command_argv_includes() {
 # Usage:
 #   _blank "$an_argument"
 #
-# Takes an argument and returns true if it is blank.
+# Returns:
+#   0  If the argument is not present or null.
+#   1  If the argument is present and not null.
 _blank() {
   [[ -z "${1:-}" ]]
 }
@@ -534,9 +559,35 @@ _blank() {
 # Usage:
 #   _present "$an_argument"
 #
-# Takes an argument and returns true if it is present.
+# Returns:
+#   0  If the argument is present and not null.
+#   1  If the argument is not present or null.
 _present() {
   [[ -n "${1:-}" ]]
+}
+
+# _interactive_input()
+#
+# Usage:
+#   _interactive_input
+#
+# Returns:
+#   0  If the current input is interactive (eg, a shell).
+#   1  If the current input is stdin / piped input.
+_interactive_input() {
+  [[ -t 0 ]]
+}
+
+# _piped_input()
+#
+# Usage:
+#   _piped_input
+#
+# Returns:
+#   0  If the current input is stdin / piped input.
+#   1  If the current input is interactive (eg, a shell).
+_piped_input() {
+  ! _interactive_input
 }
 
 # _is_installed_with_homebrew()
@@ -667,6 +718,125 @@ _print_desc() {
   fi
 }
 
+
+# ----
+
+# _escape_function_name()
+#
+# Usage:
+#   _escape_function_name "some-function:name"
+#
+# Replace ":" and "-" with "__COLON__" and "__HYPHEN__" in function names in
+# order to conform to Bash identifier restrictions.
+#
+# Bash allows ":" and "-" in function names, but they are not allowed in
+# identifiers for variables. In order to store the description in a variable
+# that matches the function name, this function escapes the function name in
+# order to make it suitable for use in a variable identifier.
+#
+# Uses built-in substring replacement:
+# http://www.tldp.org/LDP/abs/html/parameter-substitution.html#EXPREPL1
+_escape_function_name() {
+  local _escaped_colons
+  local _escaped_hyphens
+  _escaped_colons="${1//:/__COLON__}"
+  _escaped_hyphens="${_escaped_colons//-/__HYPHEN__}"
+
+  printf "%s" "${_escaped_hyphens}"
+}
+
+# desc()
+#
+# Usage:
+#   desc <name> <description>
+#   desc --get <name>
+#
+# Options:
+#   --get  Print the description for <name> if one has been set.
+#
+# Examples:
+# ```
+#   desc "list" <<HEREDOC
+# Usage:
+#   ${_ME} list
+#
+# Description:
+#   List items.
+# HEREDOC
+#
+# desc --get "list"
+# ```
+#
+# Set or print a description for a specified command or function <name>. The
+# <description> text can be passed as the second argument or as standard input.
+#
+# To make the <description> text available to other functions, `desc()` assigns
+# the text to a variable with the format `$___desc_<name>`.
+#
+# When the `--get` option is used, the description for <name> is printed, if
+# one has been set.
+#
+# NOTE:
+#
+# The `read` form of assignment is used for a balance of ease of
+# implementation and simplicity. There is an alternative assignment form
+# that could be used here:
+#
+# var="$(cat <<'HEREDOC'
+# some message
+# HEREDOC
+# )
+#
+# However, this form appears to require trailing space after backslases to
+# preserve newlines, which is unexpected. Using `read` simply requires
+# escaping backslashes, which is more common.
+desc() {
+  set +e
+
+  local _function_name
+  local _escaped_function_name
+
+  [[ -z "${1:-}" ]] && _die printf "desc(): No command name specified.\n"
+
+  if [[ "${1}" == "--get" ]]
+  then # get ------------------------------------------------------------------
+    [[ -z "${2:-}" ]] && _die printf "desc(): No command name specified.\n"
+
+    _function_name="${2:-}"
+    _escaped_function_name="$(_escape_function_name "${_function_name}")"
+    local _desc_var="___desc_${_escaped_function_name}"
+
+    if [[ -n "${!_desc_var:-}" ]]
+    then
+      printf "%s\n" "${!_desc_var}"
+    else
+      printf "No additional information for \`%s\`\n" "${_function_name}"
+    fi
+  else # set ------------------------------------------------------------------
+    _function_name="${1:-}"
+    _escaped_function_name="$(_escape_function_name "${_function_name}")"
+
+    if [[ -n "${2:-}" ]]
+    then # argument is present
+      read -r -d '' "___desc_${_escaped_function_name}" <<HEREDOC
+${2}
+HEREDOC
+
+      _debug printf \
+        "desc() set with argument: \${___desc_%s}\n" \
+        "${_escaped_function_name}"
+    else # no argument is present, so assume piped input
+      read -r -d '' "___desc_${_escaped_function_name}"
+
+      _debug printf \
+        "desc() set with pipe: \${___desc_%s}\n" \
+        "${_escaped_function_name}"
+    fi
+  fi
+
+  set -e
+}
+
 ###############################################################################
 # Default Commands
 ###############################################################################
@@ -675,25 +845,25 @@ _print_desc() {
 
 desc "version" <<HEREDOC
 Usage:
-  $_ME ( version | --version )
+  ${_ME} ( version | --version )
 
 Description:
   Display the current program version.
 
-  To save you the trouble, the current version is $_VERSION
+  To save you the trouble, the current version is ${_VERSION}
 HEREDOC
 version() {
-  printf "%s\n" "$_VERSION"
+  printf "%s\n" "${_VERSION}"
 }
 
 # Help ########################################################################
 
 desc "help" <<HEREDOC
 Usage:
-  $_ME help [<command>]
+  ${_ME} help [<command>]
 
 Description:
-  Display help information for $_ME or a specified command.
+  Display help information for ${_ME} or a specified command.
 HEREDOC
 help() {
   if [[ ${#_COMMAND_ARGV[@]} = 1 ]]
@@ -708,24 +878,24 @@ help() {
 
 Experimental installer.
 
-Version: $_VERSION
+Version: ${_VERSION}
 
 Usage:
-  $_ME <command> [--command-options] [<arguments>]
-  $_ME -h | --help
-  $_ME --version
+  ${_ME} <command> [--command-options] [<arguments>]
+  ${_ME} -h | --help
+  ${_ME} --version
 
 Options:
   -h --help  Display this help information.
   --version  Display version information.
 
 Help:
-  $_ME help [<command>]
+  ${_ME} help [<command>]
 
 $(commands)
 HEREDOC
   else
-    _print_desc "$1"
+    desc --get "${1}"
   fi
 }
 
@@ -733,7 +903,7 @@ HEREDOC
 
 desc "commands" <<HEREDOC
 Usage:
-  $_ME commands [--raw]
+  ${_ME} commands [--raw]
 
 Options:
   --raw  Display the command list without formatting.
