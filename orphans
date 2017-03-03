@@ -948,6 +948,28 @@ commands() {
 #
 ###############################################################################
 
+desc "list" <<HEREDOC
+Usage:
+  ${_ME} list
+
+Description:
+  List all available orphans.
+HEREDOC
+list() {
+  local _basename
+
+  if [[ -d "${HOME}/.orphans" ]]
+  then
+    for __file in "${HOME}/.orphans"/*
+    do
+      _basename="$(
+        basename "${__file}" | sed 's|\.[^\.]*$||g'
+      )"
+      printf "%s\n" "${_basename}"
+    done
+  fi
+}
+
 ###############################################################################
 # Run Program
 ###############################################################################
