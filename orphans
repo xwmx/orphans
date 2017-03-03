@@ -610,9 +610,9 @@ _escape_function_name() {
 # implementation and simplicity. There is an alternative assignment form
 # that could be used here:
 #
-# var="$(cat <<'EOM'
+# var="$(cat <<'HEREDOC'
 # some message
-# EOM
+# HEREDOC
 # )
 #
 # However, this form appears to require trailing space after backslases to
@@ -629,9 +629,9 @@ desc() {
 
   if [[ -n ${2:-} ]]
   then
-    read -d '' "_desc_$escaped_function_name" <<EOM
+    read -d '' "_desc_$escaped_function_name" <<HEREDOC
 $2
-EOM
+HEREDOC
     _debug printf \
       "desc() set with argument: _desc_%s\n" \
       "$escaped_function_name"
@@ -673,7 +673,7 @@ _print_desc() {
 
 # Version #####################################################################
 
-desc "version" <<EOM
+desc "version" <<HEREDOC
 Usage:
   $_ME ( version | --version )
 
@@ -681,24 +681,24 @@ Description:
   Display the current program version.
 
   To save you the trouble, the current version is $_VERSION
-EOM
+HEREDOC
 version() {
   printf "%s\n" "$_VERSION"
 }
 
 # Help ########################################################################
 
-desc "help" <<EOM
+desc "help" <<HEREDOC
 Usage:
   $_ME help [<command>]
 
 Description:
   Display help information for $_ME or a specified command.
-EOM
+HEREDOC
 help() {
   if [[ ${#_COMMAND_ARGV[@]} = 1 ]]
   then
-    cat <<EOM
+    cat <<HEREDOC
                   _
   ___  _ __ _ __ | |__   __ _ _ __  ___
  / _ \\| '__| '_ \\| '_ \\ / _\` | '_ \\/ __|
@@ -723,7 +723,7 @@ Help:
   $_ME help [<command>]
 
 $(commands)
-EOM
+HEREDOC
   else
     _print_desc "$1"
   fi
@@ -731,7 +731,7 @@ EOM
 
 # Command List ################################################################
 
-desc "commands" <<EOM
+desc "commands" <<HEREDOC
 Usage:
   $_ME commands [--raw]
 
@@ -740,7 +740,7 @@ Options:
 
 Description:
   Display the list of available commands.
-EOM
+HEREDOC
 commands() {
   if _command_argv_includes "--raw"
   then
@@ -761,7 +761,7 @@ commands() {
 # example() { : }   - The command called by the user.
 #
 #
-# desc example <<EOM
+# desc example <<HEREDOC
 #   Usage:
 #     $_ME example
 #
@@ -771,7 +771,7 @@ commands() {
 #     For usage formatting conventions see:
 #     - http://docopt.org/
 #     - http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html
-# EOM
+# HEREDOC
 # example() {
 #   printf "Hello, World!\n"
 # }
