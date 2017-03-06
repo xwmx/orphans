@@ -130,6 +130,11 @@ _VERSION="0.1.0-alpha"
 # environment has an existing $DEFAULT_COMMAND set, then that value is used.
 DEFAULT_COMMAND="${DEFAULT_COMMAND:-help}"
 
+# $ORPHANS_PATH
+#
+# The directory containing the orphan files.
+ORPHANS_PATH="${HOME}/.orphans"
+
 ###############################################################################
 # Debug
 ###############################################################################
@@ -949,9 +954,9 @@ HEREDOC
 list() {
   local _basename
 
-  if [[ -d "${HOME}/.orphans" ]]
+  if [[ -d "${ORPHANS_PATH}" ]]
   then
-    for __file in "${HOME}/.orphans"/*
+    for __file in "${ORPHANS_PATH}"/*
     do
       _basename="$(
         basename "${__file}" | sed 's|\.[^\.]*$||g'
