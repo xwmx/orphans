@@ -367,7 +367,6 @@ _DEFINED_COMMANDS=()
 #
 # Loads all of the commands sourced in the environment.
 _load_commands() {
-
   _debug printf "_load_commands(): entering...\n"
   _debug printf "_load_commands() declare -F:\n%s\n" "$(declare -F)"
 
