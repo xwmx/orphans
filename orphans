@@ -843,6 +843,50 @@ commands() {
 #
 ###############################################################################
 
+desc "info" <<HEREDOC
+Usage:
+  ${_ME} info <name>
+
+Description:
+  Print the description for a given package.
+HEREDOC
+info() {
+  local _name="${1:-}"
+
+  if [[ -z "${_name}" ]]
+  then
+    printf "No package specified."
+    exit 1
+  fi
+
+  source "${ORPHANS_PATH}/${_name}.bash"
+
+  desc --get "${_name}"
+}
+
+desc "install" <<HEREDOC
+Usage:
+  ${_ME} install <name>
+
+Description:
+  Install given package.
+HEREDOC
+install() {
+  local _name="${1:-}"
+
+  if [[ -z "${_name}" ]]
+  then
+    printf "No package specified."
+    exit 1
+  fi
+
+  source "${ORPHANS_PATH}/${_name}.bash"
+
+  printf ">> Installing %s...\n" "${_name}"
+  _install \
+    && printf ">> %s installed.\n" "${_name}"
+}
+
 desc "list" <<HEREDOC
 Usage:
   ${_ME} list
@@ -863,6 +907,29 @@ list() {
       printf "%s\n" "${_basename}"
     done
   fi
+}
+
+desc "uninstall" <<HEREDOC
+Usage:
+  ${_ME} uninstall <name>
+
+Description:
+  Uninstall given package.
+HEREDOC
+uninstall() {
+  local _name="${1:-}"
+
+  if [[ -z "${_name}" ]]
+  then
+    printf "No package specified.\n"
+    exit 1
+  fi
+
+  source "${ORPHANS_PATH}/${_name}.bash"
+
+  printf ">> Uninstalling %s...\n" "${_name}"
+  _uninstall \
+    && printf ">> %s uninstalled.\n" "${_name}"
 }
 
 ###############################################################################
