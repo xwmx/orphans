@@ -748,7 +748,7 @@ Description:
   To save you the trouble, the current version is ${_VERSION}
 HEREDOC
 version() {
-  printf "%s\n" "${_VERSION}"
+  printf "%s\\n" "${_VERSION}"
 }
 
 # Help ########################################################################
