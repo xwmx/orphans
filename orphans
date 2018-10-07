@@ -155,7 +155,7 @@ _debug() {
     # Prefix debug message with "bug (U+1F41B)"
     printf "🐛  %s " "${__DEBUG_COUNTER}"
     "${@}"
-    printf "――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――\n"
+    printf "―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――\\n"
   fi
 }
 # debug()
@@ -340,11 +340,11 @@ done
 _COMMAND_PARAMETERS=(${_COMMAND_ARGV[*]})
 unset "_COMMAND_PARAMETERS[0]"
 
-_debug printf "\${_CMD}: %s\n" "${_CMD}"
-_debug printf "\${_RAW_OPTIONS} (one per line):\n%s\n" "${_RAW_OPTIONS}"
-_debug printf "\${_COMMAND_ARGV[*]}: %s\n" "${_COMMAND_ARGV[*]}"
+_debug printf "\${_CMD}: %s\\n" "${_CMD}"
+_debug printf "\${_RAW_OPTIONS} (one per line):\\n%s\\n" "${_RAW_OPTIONS}"
+_debug printf "\${_COMMAND_ARGV[*]}: %s\\n" "${_COMMAND_ARGV[*]}"
 _debug printf \
-  "\${_COMMAND_PARAMETERS[*]:-}: %s\n" \
+  "\${_COMMAND_PARAMETERS[*]:-}: %s\\n" \
   "${_COMMAND_PARAMETERS[*]:-}"
 
 ###############################################################################
@@ -356,7 +356,7 @@ _debug printf \
 # Set to the program's basename.
 _ME=$(basename "${0}")
 
-_debug printf "\${_ME}: %s\n" "${_ME}"
+_debug printf "\${_ME}: %s\\n" "${_ME}"
 
 ###############################################################################
 # Load Commands
@@ -372,8 +372,8 @@ _DEFINED_COMMANDS=()
 #
 # Loads all of the commands sourced in the environment.
 _load_commands() {
-  _debug printf "_load_commands(): entering...\n"
-  _debug printf "_load_commands() declare -F:\n%s\n" "$(declare -F)"
+  _debug printf "_load_commands(): entering...\\n"
+  _debug printf "_load_commands() declare -F:\\n%s\\n" "$(declare -F)"
 
   # declare is a bash built-in shell function that, when called with the '-F'
   # option, displays all of the functions with the format
@@ -389,7 +389,7 @@ _load_commands() {
     _function_name=$(printf "%s" "${__name}" | awk '{ print $3 }')
 
     _debug printf \
-      "_load_commands() \${_function_name}: %s\n" \
+      "_load_commands() \${_function_name}: %s\\n" \
       "${_function_name}"
 
     # Add the function name to the $_DEFINED_COMMANDS array unless it starts
@@ -406,7 +406,7 @@ _load_commands() {
   done
 
   _debug printf \
-    "commands() \${_DEFINED_COMMANDS[*]:-}:\n%s\n" \
+    "commands() \${_DEFINED_COMMANDS[*]:-}:\\n%s\\n" \
     "${_DEFINED_COMMANDS[*]:-}"
 }
 
@@ -423,8 +423,8 @@ _load_commands() {
 #
 # NOTE: must be called at end of program after all commands have been defined.
 _main() {
-  _debug printf "main(): entering...\n"
-  _debug printf "main() \${_CMD} (upon entering): %s\n" "${_CMD}"
+  _debug printf "main(): entering...\\n"
+  _debug printf "main() \${_CMD} (upon entering): %s\\n" "${_CMD}"
 
   # If $_CMD is blank, then set to `$DEFAULT_COMMAND`
   if [[ -z "${_CMD}" ]]
@@ -441,7 +441,7 @@ _main() {
     # Pass all comment arguments to the program except for the first ($0).
     ${_CMD} "${_COMMAND_PARAMETERS[@]:-}"
   else
-    _die printf "Unknown command: %s\n" "${_CMD}"
+    _die printf "Unknown command: %s\\n" "${_CMD}"
   fi
 }
 
@@ -491,10 +491,10 @@ _contains() {
   local _test_list=(${*:2})
   for __test_element in "${_test_list[@]:-}"
   do
-    _debug printf "_contains() \${__test_element}: %s\n" "${__test_element}"
+    _debug printf "_contains() \${__test_element}: %s\\n" "${__test_element}"
     if [[ "${__test_element}" == "${1}" ]]
     then
-      _debug printf "_contains() match: %s\n" "${1}"
+      _debug printf "_contains() match: %s\\n" "${1}"
       return 0
     fi
   done
@@ -691,11 +691,11 @@ desc() {
   local _function_name
   local _escaped_function_name
 
-  [[ -z "${1:-}" ]] && _die printf "desc(): No command name specified.\n"
+  [[ -z "${1:-}" ]] && _die printf "desc(): No command name specified.\\n"
 
   if [[ "${1}" == "--get" ]]
   then # get ------------------------------------------------------------------
-    [[ -z "${2:-}" ]] && _die printf "desc(): No command name specified.\n"
+    [[ -z "${2:-}" ]] && _die printf "desc(): No command name specified.\\n"
 
     _function_name="${2:-}"
     _escaped_function_name="$(_escape_function_name "${_function_name}")"
@@ -703,9 +703,9 @@ desc() {
 
     if [[ -n "${!_desc_var:-}" ]]
     then
-      printf "%s\n" "${!_desc_var}"
+      printf "%s\\n" "${!_desc_var}"
     else
-      printf "No additional information for \`%s\`\n" "${_function_name}"
+      printf "No additional information for \`%s\`\\n" "${_function_name}"
     fi
   else # set ------------------------------------------------------------------
     _function_name="${1:-}"
@@ -718,13 +718,13 @@ ${2}
 HEREDOC
 
       _debug printf \
-        "desc() set with argument: \${___desc_%s}\n" \
+        "desc() set with argument: \${___desc_%s}\\n" \
         "${_escaped_function_name}"
     else # no argument is present, so assume piped input
       read -r -d '' "___desc_${_escaped_function_name}"
 
       _debug printf \
-        "desc() set with pipe: \${___desc_%s}\n" \
+        "desc() set with pipe: \${___desc_%s}\\n" \
         "${_escaped_function_name}"
     fi
   fi
@@ -809,10 +809,10 @@ HEREDOC
 commands() {
   if _command_argv_includes "--raw"
   then
-    printf "%s\n" "${_DEFINED_COMMANDS[@]}"
+    printf "%s\\n" "${_DEFINED_COMMANDS[@]}"
   else
-    printf "Available commands:\n"
-    printf "  %s\n" "${_DEFINED_COMMANDS[@]}"
+    printf "Available commands:\\n"
+    printf "  %s\\n" "${_DEFINED_COMMANDS[@]}"
   fi
 }
 
@@ -882,9 +882,9 @@ install() {
 
   source "${ORPHANS_PATH}/${_name}.bash"
 
-  printf ">> Installing %s...\n" "${_name}"
+  printf ">> Installing %s...\\n" "${_name}"
   _install \
-    && printf ">> %s installed.\n" "${_name}"
+    && printf ">> %s installed.\\n" "${_name}"
 }
 
 desc "list" <<HEREDOC
@@ -904,7 +904,7 @@ list() {
       _basename="$(
         basename "${__file}" | sed 's|\.[^\.]*$||g'
       )"
-      printf "%s\n" "${_basename}"
+      printf "%s\\n" "${_basename}"
     done
   fi
 }
@@ -921,15 +921,15 @@ uninstall() {
 
   if [[ -z "${_name}" ]]
   then
-    printf "No package specified.\n"
+    printf "No package specified.\\n"
     exit 1
   fi
 
   source "${ORPHANS_PATH}/${_name}.bash"
 
-  printf ">> Uninstalling %s...\n" "${_name}"
+  printf ">> Uninstalling %s...\\n" "${_name}"
   _uninstall \
-    && printf ">> %s uninstalled.\n" "${_name}"
+    && printf ">> %s uninstalled.\\n" "${_name}"
 }
 
 ###############################################################################
